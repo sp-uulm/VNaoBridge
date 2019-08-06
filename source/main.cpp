@@ -1057,7 +1057,7 @@ int main(int argc, char* argv[]) {
 	// Simulator SDK on MacOS contains a lot of messed up library paths.
 	// Most of those can be fixed with the script fix-naoqi.sh, but for some we have to fool the linker:
 	#ifdef __APPLE__
-		qi::os::setenv("DYLD_LIBRARY_PATH", (naoqiPath + "/lib/").c_str());
+		qi::os::setenv("DYLD_LIBRARY_PATH", (vNaoBridge.naoqiPath + "/lib/").c_str());
 	#endif
 
 	// NaoQI needs this for some SOAP-related number parsing
