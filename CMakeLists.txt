@@ -101,17 +101,27 @@ if(WIN32)
 		${SIMSDK_PATH}/lib/alnaosim.lib
 		${SIMSDK_PATH}/lib/alrobotmodel.lib
 		${SIMSDK_PATH}/lib/qi.lib
+
 		${SIMSDK_PATH}/lib/alproxies.lib
 		${SIMSDK_PATH}/lib/alcommon.lib
 		${SIMSDK_PATH}/lib/alvalue.lib
 		${SIMSDK_PATH}/lib/alerror.lib
+
 		${SIMSDK_PATH}/lib/qimessaging.lib
 		${SIMSDK_PATH}/lib/qitype.lib)
 elseif(APPLE)
 	target_link_libraries(${PROJECT_NAME}
 		${SIMSDK_PATH}/lib/libalnaosim.dylib
 		${SIMSDK_PATH}/lib/libalrobotmodel.dylib
-		${SIMSDK_PATH}/lib/libqi.dylib)
+		${SIMSDK_PATH}/lib/libqi.dylib
+
+		${SIMSDK_PATH}/lib/libalproxies.dylib
+		${SIMSDK_PATH}/lib/libalcommon.dylib
+		${SIMSDK_PATH}/lib/libalvalue.dylib
+		${SIMSDK_PATH}/lib/libalerror.dylib
+
+		${SIMSDK_PATH}/lib/libqitype.dylib
+		${SIMSDK_PATH}/lib/libboost_system.dylib)
 else()
 	target_link_libraries(${PROJECT_NAME}
 		${SIMSDK_PATH}/lib/libalnaosim.so
@@ -122,6 +132,7 @@ else()
 		${SIMSDK_PATH}/lib/libalcommon.so
 		${SIMSDK_PATH}/lib/libalvalue.so
 		${SIMSDK_PATH}/lib/libalerror.so
+
 		${SIMSDK_PATH}/lib/libqitype.so
 		${SIMSDK_PATH}/lib/libboost_system.so)
 endif()
