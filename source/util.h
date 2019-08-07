@@ -2,6 +2,9 @@
 #define INCLUDE_UTIL_H
 
 
+#include <list>
+
+
 std::string intToString(int value) {
 	#ifdef _WIN32
 		// we can't use std::to_string in MSVC 2010...

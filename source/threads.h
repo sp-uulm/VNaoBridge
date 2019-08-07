@@ -2,6 +2,9 @@
 #define INCLUDE_THREADS_H
 
 
+#include <boost/function.hpp>
+
+
 #ifdef _WIN32
 	#include <Windows.h>
 	#include <process.h>

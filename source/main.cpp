@@ -33,13 +33,15 @@
 #include <alrobotmodel/alrobotmodel.h>
 
 // NaoQI SDK
-#include <alproxies/altexttospeechproxy.h>
-#include <alproxies/almemoryproxy.h>
-#include <alproxies/aldialogproxy.h>
-#include <alproxies/almotionproxy.h>
-#include <alcommon/albroker.h>
-#include <alcommon/albrokermanager.h>
-#include <alcommon/almodule.h>
+#ifndef __APPLE__
+#  include <alproxies/altexttospeechproxy.h>
+#  include <alproxies/almemoryproxy.h>
+#  include <alproxies/aldialogproxy.h>
+#  include <alproxies/almotionproxy.h>
+#  include <alcommon/albroker.h>
+#  include <alcommon/albrokermanager.h>
+#  include <alcommon/almodule.h>
+#endif
 
 // V-Rep
 #include <extApi.h>
@@ -54,7 +56,9 @@
 #include "res_naosvg.h"
 #include "os.h"
 #include "vrep.h"
-#include "vnaobridgemodule.h"
+#ifndef __APPLE__
+#  include "vnaobridgemodule.h"
+#endif
 
 
 // will be set to 1 whenever a signal occured
@@ -97,10 +101,12 @@ public:
 	Sim::Model *        naoqiModel;       // NaoQI Hal Model that contains structural information about the robot
 	Sim::HALInterface * naoqiHal;         // NAOQi Hal interface that allows sending and receiving data
 
-	boost::shared_ptr<AL::ALBroker>            naoqiBroker;
-	boost::shared_ptr<AL::ALMotionProxy>       naoqiAlMotion;
-	boost::shared_ptr<AL::ALTextToSpeechProxy> naoqiAlTextToSpeech;
-	// boost::shared_ptr<AL::ALDialogProxy>       naoqiAlDialog;
+	#ifndef __APPLE__
+		boost::shared_ptr<AL::ALBroker>            naoqiBroker;
+		boost::shared_ptr<AL::ALMotionProxy>       naoqiAlMotion;
+		boost::shared_ptr<AL::ALTextToSpeechProxy> naoqiAlTextToSpeech;
+		// boost::shared_ptr<AL::ALDialogProxy>       naoqiAlDialog;
+	#endif
 
 	u_short webserverPort;
 	std::map<std::string, Image> cameraImages;
@@ -177,6 +183,8 @@ public:
 			std::cerr << "could not connect to V-Rep" << std::endl;
 			return -1;
 		}
+
+		onText("Hello");
 
 		// find robot handle and name (if not already specified)
 		if(vrepNaoObjectHandle == 0) {
@@ -278,6 +286,8 @@ public:
 
 		bool alModuleStarted = false;
 
+		onText("Starting Main Loop...");
+
 		// execute the main loop
 		std::cout << "Starting main loop" << std::endl;
 		while(signalOccured == 0 && simxGetConnectionId(vrepClientId) != -1) {
@@ -292,12 +302,14 @@ public:
 
 			// start hal
 			if(naoqiPidHal == 0 && relativeTime.tv_sec >= naoqiHalDelay) {
+				onText("Starting HAL Process...");
 				std::cout << "Starting HAL Process" << std::endl;
 				startHalProcess();
 			}
 
 			// start naoqi-bin
 			if(naoqiPidNaoqibin == 0 && relativeTime.tv_sec >= naoqiBinDelay) {
+				onText("Starting NaoQI Process...");
 				std::cout << "Starting NaoQI Process" << std::endl;
 				startNaoqiProcess();
 			}
@@ -305,31 +317,33 @@ public:
 			if(!alModuleStarted && relativeTime.tv_sec >= naoqiBinDelay + 5) {
 				alModuleStarted = true;
 
-				std::cout << "Creating ALBroker" << std::endl;
-				try {
-					naoqiBroker = AL::ALBroker::createBroker("VNaoBridgeBroker", "0.0.0.0", 0, "127.0.0.1", naoqiId, 0);
+				#ifndef __APPLE__
+					std::cout << "Creating ALBroker" << std::endl;
+					try {
+						naoqiBroker = AL::ALBroker::createBroker("VNaoBridgeBroker", "0.0.0.0", 0, "127.0.0.1", naoqiId, 0);
 
-					// Deal with ALBrokerManager singleton
-					AL::ALBrokerManager::setInstance(naoqiBroker->fBrokerManager.lock());
-					AL::ALBrokerManager::getInstance()->addBroker(naoqiBroker);
-				}
-				catch(const AL::ALError& /* e */) {
-					std::cerr << "Faild to connect broker to 127.0.0.1:" << naoqiId << std::endl;
-					AL::ALBrokerManager::getInstance()->killAllBroker();
-					AL::ALBrokerManager::kill();
-				}
+						// Deal with ALBrokerManager singleton
+						AL::ALBrokerManager::setInstance(naoqiBroker->fBrokerManager.lock());
+						AL::ALBrokerManager::getInstance()->addBroker(naoqiBroker);
+					}
+					catch(const AL::ALError& /* e */) {
+						std::cerr << "Faild to connect broker to 127.0.0.1:" << naoqiId << std::endl;
+						AL::ALBrokerManager::getInstance()->killAllBroker();
+						AL::ALBrokerManager::kill();
+					}
 
-				std::cout << "Starting ALVNaoBridgeModule" << std::endl;
-				AL::ALModule::createModule<ALVNaoBridgeModule>(naoqiBroker, this);
+					std::cout << "Starting ALVNaoBridgeModule" << std::endl;
+					AL::ALModule::createModule<ALVNaoBridgeModule>(naoqiBroker, this);
 
-				std::cout << "Starting ALMotion Proxy" << std::endl;
-				naoqiAlMotion = naoqiBroker->getSpecialisedProxy<AL::ALMotionProxy>("ALMotion");
+					std::cout << "Starting ALMotion Proxy" << std::endl;
+					naoqiAlMotion = naoqiBroker->getSpecialisedProxy<AL::ALMotionProxy>("ALMotion");
 
-				std::cout << "Starting ALTextToSpeech Proxy" << std::endl;
-				naoqiAlTextToSpeech = naoqiBroker->getSpecialisedProxy<AL::ALTextToSpeechProxy>("ALTextToSpeech");
+					std::cout << "Starting ALTextToSpeech Proxy" << std::endl;
+					naoqiAlTextToSpeech = naoqiBroker->getSpecialisedProxy<AL::ALTextToSpeechProxy>("ALTextToSpeech");
 
-			// 	std::cout << "Starting ALDialog Proxy" << std::endl;
-			// 	naoqiAlDialog = naoqiBroker->getSpecialisedProxy<AL::ALDialogProxy>("ALDialog");
+				//  std::cout << "Starting ALDialog Proxy" << std::endl;
+				//  naoqiAlDialog = naoqiBroker->getSpecialisedProxy<AL::ALDialogProxy>("ALDialog");
+				#endif
 
 				onText("I'm ready!");
 			}
@@ -375,9 +389,9 @@ public:
 				for(auto iter = simCameraSensors.begin(); iter != simCameraSensors.end(); iter++) {
 					const Sim::CameraSensor* simCameraSensor = *iter;
 
-				 	auto cameraSensorHandle = vrepNaoAllObjectHandles.find(simCameraSensor->name());
-				 	if(cameraSensorHandle == vrepNaoAllObjectHandles.end())
-				 		continue;
+					auto cameraSensorHandle = vrepNaoAllObjectHandles.find(simCameraSensor->name());
+					if(cameraSensorHandle == vrepNaoAllObjectHandles.end())
+						continue;
 
 					// fetch camera sensor image from V-Rep
 					simxInt    vrepImageResolution[2];
@@ -599,9 +613,11 @@ public:
 };
 
 
-void ALVNaoBridgeModule::callback(const std::string &key, const AL::ALValue &value, const AL::ALValue &msg) {
-	bridge->onText(value);
-}
+#ifndef __APPLE__
+	void ALVNaoBridgeModule::callback(const std::string &key, const AL::ALValue &value, const AL::ALValue &msg) {
+		bridge->onText(value);
+	}
+#endif
 
 
 void appendToStringstream(void* ss, void* data, int size) {
@@ -622,99 +638,103 @@ public:
 		std::stringstream data;
 		data << "<html>" << "\n";
 		data << "<head>" << "\n";
-		data << "	<style type=\"text/css\">" << "\n";
-		data << "		body {" << "\n";
-		data << "			background: #e0e0e0;" << "\n";
-		data << "			padding-top: 80px;" << "\n";
-		data << "		}" << "\n";
-		data << "		body, td {" << "\n";
-		data << "			font-size: 14pt;" << "\n";
-		data << "			font-family: Sans-Serif;" << "\n";
-		data << "		}" << "\n";
-		data << "		h1 {" << "\n";
-		data << "			font-size: 16pt;" << "\n";
-		data << "			font-weight: bold;" << "\n";
-		data << "			font-family: Sans-Serif;" << "\n";
-		data << "		}" << "\n";
-		data << "		.page-wrapper {" << "\n";
-		data << "			margin: 0 auto;" << "\n";
-		data << "			max-width: 800px;" << "\n";
-		data << "		}" << "\n";
-		data << "		.content-wrapper {" << "\n";
-		data << "			background: linear-gradient(to bottom, #ffffff, #eeeeee);" << "\n";
-		data << "			border: 1px solid #cccccc;" << "\n";
-		data << "			border-radius: 20px;" << "\n";
-		data << "			box-shadow: 0 5px 5px rgba(0, 0, 0, 0.1);" << "\n";
-		data << "			position: relative;" << "\n";
-		data << "			margin-top: 20px;" << "\n";
-		data << "			padding: 30px;" << "\n";
-		data << "		}" << "\n";
-		data << "		.logo-wrapper {" << "\n";
-		data << "			position: absolute;" << "\n";
-		data << "			margin-left: auto;" << "\n";
-		data << "			margin-right: auto;" << "\n";
-		data << "			left: 0;" << "\n";
-		data << "			right: 0;" << "\n";
-		data << "			width: 128px;" << "\n";
-		data << "			top: -80px;" << "\n";
-		data << "			text-align: center;" << "\n";
-		data << "			border-radius: 100px;" << "\n";
-		data << "			padding: 20px 20px;" << "\n";
-		data << "			background: linear-gradient(to bottom, #ffffff, #f8f8f8);" << "\n";
-		data << "			border: 1px solid #cccccc;" << "\n";
-		data << "			box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);" << "\n";
-		data << "			font-size: 16pt;" << "\n";
-		data << "		}" << "\n";
-		data << "		.logo {" << "\n";
-		data << "		}" << "\n";
-		data << "	</style>" << "\n";
-		data << "	<script>" << "\n";
-		data << "		function ajax(url) {" << "\n";
-		data << "			let req = new XMLHttpRequest();" << "\n";
-		data << "			req.open('GET', url);" << "\n";
-		data << "			req.send();" << "\n";
-		data << "		}" << "\n";
-		data << "	</script>" << "\n";
+		data << " <style type=\"text/css\">" << "\n";
+		data << "   body {" << "\n";
+		data << "     background: #e0e0e0;" << "\n";
+		data << "     padding-top: 80px;" << "\n";
+		data << "   }" << "\n";
+		data << "   body, td {" << "\n";
+		data << "     font-size: 14pt;" << "\n";
+		data << "     font-family: Sans-Serif;" << "\n";
+		data << "   }" << "\n";
+		data << "   h1 {" << "\n";
+		data << "     font-size: 16pt;" << "\n";
+		data << "     font-weight: bold;" << "\n";
+		data << "     font-family: Sans-Serif;" << "\n";
+		data << "   }" << "\n";
+		data << "   .page-wrapper {" << "\n";
+		data << "     margin: 0 auto;" << "\n";
+		data << "     max-width: 800px;" << "\n";
+		data << "   }" << "\n";
+		data << "   .content-wrapper {" << "\n";
+		data << "     background: linear-gradient(to bottom, #ffffff, #eeeeee);" << "\n";
+		data << "     border: 1px solid #cccccc;" << "\n";
+		data << "     border-radius: 20px;" << "\n";
+		data << "     box-shadow: 0 5px 5px rgba(0, 0, 0, 0.1);" << "\n";
+		data << "     position: relative;" << "\n";
+		data << "     margin-top: 20px;" << "\n";
+		data << "     padding: 30px;" << "\n";
+		data << "   }" << "\n";
+		data << "   .logo-wrapper {" << "\n";
+		data << "     position: absolute;" << "\n";
+		data << "     margin-left: auto;" << "\n";
+		data << "     margin-right: auto;" << "\n";
+		data << "     left: 0;" << "\n";
+		data << "     right: 0;" << "\n";
+		data << "     width: 128px;" << "\n";
+		data << "     top: -80px;" << "\n";
+		data << "     text-align: center;" << "\n";
+		data << "     border-radius: 100px;" << "\n";
+		data << "     padding: 20px 20px;" << "\n";
+		data << "     background: linear-gradient(to bottom, #ffffff, #f8f8f8);" << "\n";
+		data << "     border: 1px solid #cccccc;" << "\n";
+		data << "     box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);" << "\n";
+		data << "     font-size: 16pt;" << "\n";
+		data << "   }" << "\n";
+		data << "   .logo {" << "\n";
+		data << "   }" << "\n";
+		data << " </style>" << "\n";
+		data << " <script>" << "\n";
+		data << "   function ajax(url) {" << "\n";
+		data << "     let req = new XMLHttpRequest();" << "\n";
+		data << "     req.open('GET', url);" << "\n";
+		data << "     req.send();" << "\n";
+		data << "   }" << "\n";
+		data << " </script>" << "\n";
 		data << "</head>" << "\n";
 		data << "<body>" << "\n";
-		data << "	<div class=\"page-wrapper\">" << "\n";
-		data << "		<div class=\"content-wrapper\">" << "\n";
-		data << "			<div class=\"logo-wrapper\">" << "\n";
-		data << "				" << generateNaoSVG(vnaoBridge->colorR, vnaoBridge->colorG, vnaoBridge->colorB);
-		data << "				<div class=\"robot-name\">" << vnaoBridge->vrepNaoObjectName << "</div>" << "\n";
-		data << "			</div>" << "\n";
+		data << " <div class=\"page-wrapper\">" << "\n";
+		data << "   <div class=\"content-wrapper\">" << "\n";
+		data << "     <div class=\"logo-wrapper\">" << "\n";
+		data << "       " << generateNaoSVG(vnaoBridge->colorR, vnaoBridge->colorG, vnaoBridge->colorB);
+		data << "       <div class=\"robot-name\">" << vnaoBridge->vrepNaoObjectName << "</div>" << "\n";
+		data << "     </div>" << "\n";
 
 		data << "NaoQI Robot: " << vnaoBridge->naoqiModel->prettyName(2) << "<br />" << "\n";
-		data << "State: " << (vnaoBridge->naoqiAlMotion && vnaoBridge->naoqiAlMotion->robotIsWakeUp() ? "Awake" : "Resting") << "<br />" << "\n";
+		#ifndef __APPLE__
+			data << "State: " << (vnaoBridge->naoqiAlMotion && vnaoBridge->naoqiAlMotion->robotIsWakeUp() ? "Awake" : "Resting") << "<br />" << "\n";
+		#endif
 		data << "HAL pid: " << vnaoBridge->naoqiPidHal << "<br />" << "\n";
 		data << "NaoQI-bin pid: " << vnaoBridge->naoqiPidNaoqibin << "<br />" << "\n";
-		data << "		</div>" << "\n";
+		data << "   </div>" << "\n";
 
-		data << "		<div class=\"content-wrapper\">" << "\n";
-		data << "			<h1>Commands</h1>" << "\n";
-		data << "				<button onclick='ajax(\"/wake\");'>Wake Up</button>" << "\n";
-		data << "				<button onclick='ajax(\"/rest\");'>Rest</button>" << "\n";
-		data << "				<button onclick='ajax(\"/reset\");'>Reset Joints</button>" << "\n";
-		data << "				<button onclick='ajax(\"/say\");'>Say 'Hello world'</button>" << "\n";
-		// data << "				<button onclick='ajax(\"/hear\");'>Hear 'Hello world'</button>" << "\n";
-		data << "				<button onclick='ajax(\"/walk\");'>Walk 1m</button>" << "\n";
-		data << "				<button onclick='ajax(\"/move0\");'>Walk 1mm</button>" << "\n";
-		data << "				<button onclick='ajax(\"/stopmove\");'>Stop Moving</button>" << "\n";
-		data << "				<br />" << "\n";
-		data << "				<button onclick='ajax(\"/tactile_front\");'>Touch Front Head</button>" << "\n";
-		data << "				<button onclick='ajax(\"/tactile_middle\");'>Touch Middle Head</button>" << "\n";
-		data << "				<button onclick='ajax(\"/tactile_rear\");'>Touch Rear Head</button>" << "\n";
-		data << "		</div>" << "\n";
+		data << "   <div class=\"content-wrapper\">" << "\n";
+		data << "     <h1>Commands</h1>" << "\n";
+		#ifndef __APPLE__
+			data << "       <button onclick='ajax(\"/wake\");'>Wake Up</button>" << "\n";
+			data << "       <button onclick='ajax(\"/rest\");'>Rest</button>" << "\n";
+			data << "       <button onclick='ajax(\"/walk\");'>Walk 1m</button>" << "\n";
+			data << "       <button onclick='ajax(\"/move0\");'>Walk 1mm</button>" << "\n";
+			data << "       <button onclick='ajax(\"/stopmove\");'>Stop Moving</button>" << "\n";
+		#endif
+		data << "       <button onclick='ajax(\"/say\");'>Say 'Hello world'</button>" << "\n";
+		// data << "        <button onclick='ajax(\"/hear\");'>Hear 'Hello world'</button>" << "\n";
+		data << "       <button onclick='ajax(\"/reset\");'>Reset Joints</button>" << "\n";
+		data << "       <br />" << "\n";
+		data << "       <button onclick='ajax(\"/tactile_front\");'>Touch Front Head</button>" << "\n";
+		data << "       <button onclick='ajax(\"/tactile_middle\");'>Touch Middle Head</button>" << "\n";
+		data << "       <button onclick='ajax(\"/tactile_rear\");'>Touch Rear Head</button>" << "\n";
+		data << "   </div>" << "\n";
 
-		data << "		<div class=\"content-wrapper\">" << "\n";
-		data << "			<h1>Cameras</h1>" << "\n";
-		data << "			<img src=\"/CameraTop.png\" width=\"320\" height=\"240\" style=\"border: 1px solid #444;\" /> " << "\n";
-		data << "			<img src=\"/CameraBottom.png\" width=\"320\" height=\"240\" style=\"border: 1px solid #444;\" /><br />" << "\n";
-		data << "		</div>" << "\n";
+		data << "   <div class=\"content-wrapper\">" << "\n";
+		data << "     <h1>Cameras</h1>" << "\n";
+		data << "     <img src=\"/CameraTop.png\" width=\"320\" height=\"240\" style=\"border: 1px solid #444;\" /> " << "\n";
+		data << "     <img src=\"/CameraBottom.png\" width=\"320\" height=\"240\" style=\"border: 1px solid #444;\" /><br />" << "\n";
+		data << "   </div>" << "\n";
 
-		data << "		<div class=\"content-wrapper\">" << "\n";
-		data << "			<h1>Sensors</h1>" << "\n";
-		data << "			<table>" << "\n";
+		data << "   <div class=\"content-wrapper\">" << "\n";
+		data << "     <h1>Sensors</h1>" << "\n";
+		data << "     <table>" << "\n";
 		{
 			data << "<tr><td colspan=\"2\">Angle Actuators</td></tr>" << "\n";
 			auto simAngleActuators = vnaoBridge->naoqiModel->angleActuators();
@@ -805,10 +825,10 @@ public:
 				data << "<tr><td>" << (*simBumperSensor)->name() << ":</td><td>" << value << "</td></tr>" << "\n";
 			}
 		}
-		data << "			</table>" << "\n";
-		data << "		</div>" << "\n";
+		data << "     </table>" << "\n";
+		data << "   </div>" << "\n";
 
-		data << "	</div>" << "\n";
+		data << " </div>" << "\n";
 		data << "</body>" << "\n";
 		data << "</html>" << "\n";
 		vnaoBridge->globalMutex.unlock();
@@ -824,48 +844,50 @@ public:
 			vnaoBridge->globalMutex.unlock();
 			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
 		}
-		else if(requestPath == "/say") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlTextToSpeech)
-				async(boost::bind(&AL::ALTextToSpeechProxy::say, vnaoBridge->naoqiAlTextToSpeech, "Hello world"));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
-		else if(requestPath == "/walk") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlMotion)
-				async(boost::bind(&AL::ALMotionProxy::moveTo, vnaoBridge->naoqiAlMotion, 1.0, 0.0, 0.0));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
-		else if(requestPath == "/wake") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlMotion)
-				async(boost::bind(&AL::ALMotionProxy::wakeUp, vnaoBridge->naoqiAlMotion));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
-		else if(requestPath == "/stopmove") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlMotion)
-				async(boost::bind(&AL::ALMotionProxy::stopMove, vnaoBridge->naoqiAlMotion));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
-		else if(requestPath == "/move0") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlMotion)
-				async(boost::bind(&AL::ALMotionProxy::moveTo, vnaoBridge->naoqiAlMotion, 0.001, 0.0, 0.0));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
-		else if(requestPath == "/rest") {
-			vnaoBridge->globalMutex.lock();
-			if(vnaoBridge->naoqiAlMotion)
-				async(boost::bind(&AL::ALMotionProxy::rest, vnaoBridge->naoqiAlMotion));
-			vnaoBridge->globalMutex.unlock();
-			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
-		}
+		#ifndef __APPLE__
+			else if(requestPath == "/say") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlTextToSpeech)
+					async(boost::bind(&AL::ALTextToSpeechProxy::say, vnaoBridge->naoqiAlTextToSpeech, "Hello world"));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+			else if(requestPath == "/walk") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlMotion)
+					async(boost::bind(&AL::ALMotionProxy::moveTo, vnaoBridge->naoqiAlMotion, 1.0, 0.0, 0.0));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+			else if(requestPath == "/wake") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlMotion)
+					async(boost::bind(&AL::ALMotionProxy::wakeUp, vnaoBridge->naoqiAlMotion));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+			else if(requestPath == "/stopmove") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlMotion)
+					async(boost::bind(&AL::ALMotionProxy::stopMove, vnaoBridge->naoqiAlMotion));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+			else if(requestPath == "/move0") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlMotion)
+					async(boost::bind(&AL::ALMotionProxy::moveTo, vnaoBridge->naoqiAlMotion, 0.001, 0.0, 0.0));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+			else if(requestPath == "/rest") {
+				vnaoBridge->globalMutex.lock();
+				if(vnaoBridge->naoqiAlMotion)
+					async(boost::bind(&AL::ALMotionProxy::rest, vnaoBridge->naoqiAlMotion));
+				vnaoBridge->globalMutex.unlock();
+				return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+			}
+		#endif
 		else if(requestPath == "/tactile_front") {
 			vnaoBridge->tactile_front = true;
 			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
@@ -879,11 +901,11 @@ public:
 			return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
 		}
 		// else if(requestPath == "/hear") {
-		// 	vnaoBridge->globalMutex.lock();
-		// 	if(vnaoBridge->naoqiAlDialog)
-		// 		async(boost::bind(&AL::ALDialogProxy::forceInput, vnaoBridge->naoqiAlDialog, "Hello world"));
-		// 	vnaoBridge->globalMutex.unlock();
-		// 	return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
+		//  vnaoBridge->globalMutex.lock();
+		//  if(vnaoBridge->naoqiAlDialog)
+		//    async(boost::bind(&AL::ALDialogProxy::forceInput, vnaoBridge->naoqiAlDialog, "Hello world"));
+		//  vnaoBridge->globalMutex.unlock();
+		//  return HttpServer::generate200Response("ok", "text/html; charset=utf-8");
 		// }
 		else if(requestPath == "/CameraTop.png" || requestPath == "/CameraBottom.png") {
 			vnaoBridge->globalMutex.lock();
