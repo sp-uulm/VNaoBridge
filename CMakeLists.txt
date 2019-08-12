@@ -110,6 +110,8 @@ if(WIN32)
 		${SIMSDK_PATH}/lib/qimessaging.lib
 		${SIMSDK_PATH}/lib/qitype.lib)
 elseif(APPLE)
+	target_link_libraries(${PROJECT_NAME} -static-libgcc -static-libstdc++)
+
 	target_link_libraries(${PROJECT_NAME}
 		${SIMSDK_PATH}/lib/libalnaosim.dylib
 		${SIMSDK_PATH}/lib/libalrobotmodel.dylib
@@ -119,6 +121,7 @@ elseif(APPLE)
 		${SIMSDK_PATH}/lib/libalcommon.dylib
 		${SIMSDK_PATH}/lib/libalvalue.dylib
 		${SIMSDK_PATH}/lib/libalerror.dylib
+		${SIMSDK_PATH}/lib/libalsimutils.dylib
 
 		${SIMSDK_PATH}/lib/libqitype.dylib
 		${SIMSDK_PATH}/lib/libboost_system.dylib)
