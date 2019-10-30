@@ -184,8 +184,6 @@ public:
 			return -1;
 		}
 
-		onText("Hello");
-
 		// find robot handle and name (if not already specified)
 		if(vrepNaoObjectHandle == 0) {
 			std::cout << "Searching for V-Rep object called " << vrepNaoObjectName << " ..." << std::endl;
