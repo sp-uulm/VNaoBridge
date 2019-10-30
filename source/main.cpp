@@ -94,8 +94,8 @@ public:
 	int                 naoqiId;          // Simulator-Sdk Robot Id
 	int                 naoqiHalDelay;    // Delay the start of 'hal' by this amount of seconds
 	int                 naoqiBinDelay;    // Delay the start of 'naoqi-bin' by this amount of seconds
-	int                 naoqiPidHal;      // ID of the running 'hal' process, or 0
-	int                 naoqiPidNaoqibin; // ID of the running 'naoqi-bin' process, or 0
+	PROCESS_ID          naoqiPidHal;      // ID of the running 'hal' process, or 0
+	PROCESS_ID          naoqiPidNaoqibin; // ID of the running 'naoqi-bin' process, or 0
 	std::string         naoqiPath;        // path to the simulator-sdk folder
 	std::string         naoqiModelPath;   // path to the Simulator SDK xml robot description
 	Sim::Model *        naoqiModel;       // NaoQI Hal Model that contains structural information about the robot
@@ -124,8 +124,8 @@ public:
 		naoqiId(9559),
 		naoqiHalDelay(3),
 		naoqiBinDelay(6),
-		naoqiPidHal(0),
-		naoqiPidNaoqibin(0),
+		naoqiPidHal(INVALID_PROCESS_ID),
+		naoqiPidNaoqibin(INVALID_PROCESS_ID),
 		naoqiModel(NULL),
 		naoqiHal(NULL),
 		webserverPort(19559),
@@ -139,7 +139,7 @@ public:
 	}
 
 	void startHalProcess() {
-		naoqiPidHal = qi::os::spawnlp((naoqiPath + "/bin/hal").c_str(), "hal",
+		naoqiPidHal = spawnProcess((naoqiPath + "/bin/hal").c_str(), "hal",
 			"-s", ("hal-ipc" + intToString(naoqiId)).c_str(),
 			"-p", "HAL/Robot/Type:string=Nao",
 			"-p", "HAL/Simulation:int=1",
@@ -155,7 +155,7 @@ public:
 	}
 
 	void startNaoqiProcess() {
-		naoqiPidNaoqibin = qi::os::spawnlp((naoqiPath + "/bin/naoqi-bin").c_str(), "naoqi-bin",
+		naoqiPidNaoqibin = spawnProcess((naoqiPath + "/bin/naoqi-bin").c_str(), "naoqi-bin",
 			"-p", intToString(naoqiId).c_str(),
 			"--writable-path", "/tmp/SimLauncherj29Z24Y",
 			(char*)NULL);
@@ -299,14 +299,14 @@ public:
 			qi::os::timeval relativeTime = currentTime - startTime;
 
 			// start hal
-			if(naoqiPidHal == 0 && relativeTime.tv_sec >= naoqiHalDelay) {
+			if(naoqiPidHal == INVALID_PROCESS_ID && relativeTime.tv_sec >= naoqiHalDelay) {
 				onText("Starting HAL Process...");
 				std::cout << "Starting HAL Process" << std::endl;
 				startHalProcess();
 			}
 
 			// start naoqi-bin
-			if(naoqiPidNaoqibin == 0 && relativeTime.tv_sec >= naoqiBinDelay) {
+			if(naoqiPidNaoqibin == INVALID_PROCESS_ID && relativeTime.tv_sec >= naoqiBinDelay) {
 				onText("Starting NaoQI Process...");
 				std::cout << "Starting NaoQI Process" << std::endl;
 				startNaoqiProcess();
@@ -559,19 +559,10 @@ public:
 			qi::os::msleep(50);
 		}
 
-		if(naoqiPidHal > 0)
-			qi::os::kill(naoqiPidHal, SIGINT);
-		if(naoqiPidNaoqibin > 0)
-			qi::os::kill(naoqiPidNaoqibin, SIGINT);
-
-		if(naoqiPidHal > 0) {
-			int status;
-			qi::os::waitpid(naoqiPidHal, &status);
-		}
-		if(naoqiPidNaoqibin > 0) {
-			int status;
-			qi::os::waitpid(naoqiPidNaoqibin, &status);
-		}
+		if(naoqiPidHal != INVALID_PROCESS_ID)
+			killProcess(naoqiPidHal);
+		if(naoqiPidNaoqibin != INVALID_PROCESS_ID)
+			killProcess(naoqiPidNaoqibin);
 
 		delete naoqiHal;
 
