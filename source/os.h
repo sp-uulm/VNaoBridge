@@ -58,7 +58,7 @@ std::string getCurrentExecutableDirectory(std::string argv0) {
 		PROCESS_INFORMATION processInfo;
 		ZeroMemory(&processInfo, sizeof(processInfo));
 
-		const BOOL spawned = CreateProcessW(NULL, (LPWSTR)cmdline.c_str(), NULL, NULL, false, NULL, NULL, NULL, &startupInfo, &processInfo);
+		const BOOL spawned = CreateProcessW(NULL, (LPWSTR)cmdline.c_str(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &startupInfo, &processInfo);
 		if(!spawned)
 			return INVALID_PROCESS_ID;
 		return processInfo.hProcess;
